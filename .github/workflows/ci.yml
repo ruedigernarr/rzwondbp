@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   pull_request:
@@ -8,7 +8,6 @@ on:
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,7 +23,6 @@ jobs:
 
   scan_js:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -55,26 +53,9 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
-
-      # redis:
-      #   image: redis
-      #   ports:
-      #     - 6379:6379
-      #   options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl libjemalloc2 libvips postgresql-client
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl libjemalloc2 libvips sqlite3
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -88,8 +69,6 @@ jobs:
       - name: Run tests
         env:
           RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432
-          # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test test:system
 
       - name: Keep screenshots from failed system tests
@@ -99,3 +78,35 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
+  
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test  # Deploy only if tests pass
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download and install Scalingo CLI
+        run: |
+          curl -L https://github.com/Scalingo/cli/releases/download/1.33.0/scalingo_1.33.0_linux_amd64.tar.gz | tar xz
+          chmod +x ./scalingo_1.33.0_linux_amd64/scalingo
+          sudo mv ./scalingo_1.33.0_linux_amd64/scalingo /usr/local/bin/
+
+      - name: Login to Scalingo
+        env:
+          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_KEY }}
+        run: scalingo login --api-token $SCALINGO_API_TOKEN
+        
+      - name: Deploy to Scalingo
+        env:
+          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_KEY }}
+          SCALINGO_APP_NAME: ${{ secrets.SCALINGO_APP_NAME }}
+        run: |
+          scalingo deploy --app $SCALINGO_APP_NAME
+      
+      - name: Migrate database
+        run: |
+          scalingo --app $SCALINGO_APP_NAME run bin/rails db:migrate
+        env:
+          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_KEY }}
+          SCALINGO_APP_NAME: ${{ secrets.SCALINGO_APP_NAME }}
