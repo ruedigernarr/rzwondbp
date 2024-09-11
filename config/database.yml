@@ -85,6 +85,7 @@ test:
 #
 production:
   <<: *default
-  database: rzwondbp_production
-  username: rzwondbp
-  password: <%= ENV["RZWONDBP_DATABASE_PASSWORD"] %>
+  adapter: postgresql
+  url: <%= ENV['DATABASE_URL'] %>
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
