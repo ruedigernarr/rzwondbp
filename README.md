@@ -1,0 +1,3 @@
+# R2ND Rails Boilerplate
+
+...
