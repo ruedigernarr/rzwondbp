@@ -110,12 +110,12 @@ jobs:
 
       - name: Login to Scalingo
         env:
-          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_KEY }}
+          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_TOKEN }}
         run: scalingo login --api-token $SCALINGO_API_TOKEN
         
       - name: Deploy to Scalingo
         env:
-          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_KEY }}
+          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_TOKEN }}
           SCALINGO_APP_NAME: ${{ secrets.SCALINGO_APP_NAME }}
         run: |
           scalingo deploy --app $SCALINGO_APP_NAME
@@ -124,5 +124,5 @@ jobs:
         run: |
           scalingo --app $SCALINGO_APP_NAME run bin/rails db:migrate
         env:
-          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_KEY }}
+          SCALINGO_API_TOKEN: ${{ secrets.SCALINGO_API_TOKEN }}
           SCALINGO_APP_NAME: ${{ secrets.SCALINGO_APP_NAME }}
